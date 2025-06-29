@@ -14,10 +14,11 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [textInput, setTextInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [useText, setUseText] = useState(false);
+  const [inputMethod, setInputMethod] = useState<'voice' | 'text' | 'upload'>('voice');
   const [showMissingFields, setShowMissingFields] = useState(false);
   const [missingFieldsData, setMissingFieldsData] = useState<any>(null);
   const [additionalInput, setAdditionalInput] = useState('');
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   
   // Missing fields voice recording states
   const [isMissingFieldsRecording, setIsMissingFieldsRecording] = useState(false);
@@ -29,12 +30,13 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const missingFieldsMediaRecorderRef = useRef<MediaRecorder | null>(null);
   const missingFieldsTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const startRecording = async () => {
     // Check if mediaDevices is available
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       console.log('MediaDevices API not available, switching to text input');
-      setUseText(true);
+      setInputMethod('text');
       toast({
         title: "Voice Recording Not Available",
         description: "Your browser doesn't support voice recording. Please use text input instead.",
@@ -70,7 +72,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
       
     } catch (error) {
       console.error('Error accessing microphone:', error);
-      setUseText(true);
+      setInputMethod('text');
       toast({
         title: "Microphone Access Denied",
         description: "Could not access microphone. Switched to text input mode.",
@@ -87,6 +89,32 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
         clearInterval(timerRef.current);
       }
     }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check if it's an audio file
+      if (!file.type.startsWith('audio/')) {
+        toast({
+          title: "Invalid File Type",
+          description: "Please select an audio file.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      setUploadedFile(file);
+      setAudioBlob(file);
+      toast({
+        title: "Audio File Uploaded",
+        description: `File "${file.name}" has been uploaded successfully.`,
+      });
+    }
+  };
+
+  const triggerFileUpload = () => {
+    fileInputRef.current?.click();
   };
 
   const formatTime = (seconds: number) => {
@@ -173,7 +201,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
     if (!audioBlob && !textInput.trim()) {
       toast({
         title: "No Input",
-        description: "Please record audio or enter text to continue.",
+        description: "Please record audio, upload an audio file, or enter text to continue.",
         variant: "destructive"
       });
       return;
@@ -184,13 +212,13 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
     try {
       const formData = new FormData();
       
-      if (audioBlob && !useText) {
+      if (audioBlob && inputMethod !== 'text') {
         formData.append('audio', audioBlob);
       } else {
         formData.append('text', textInput);
       }
       
-      console.log('Submitting to Python backend on port 3000:', useText ? 'text' : 'audio');
+      console.log('Submitting to Python backend on port 3000:', inputMethod === 'text' ? 'text' : 'audio');
       
       const response = await fetch('http://localhost:3000/start_submission', {
         method: 'POST',
@@ -353,23 +381,30 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
               {/* Method Toggle */}
               <div className="flex justify-center space-x-4">
                 <Button
-                  variant={!useText ? "default" : "outline"}
-                  onClick={() => setUseText(false)}
-                  className={!useText ? "bg-purple-600 hover:bg-purple-700" : ""}
+                  variant={inputMethod === 'voice' ? "default" : "outline"}
+                  onClick={() => setInputMethod('voice')}
+                  className={inputMethod === 'voice' ? "bg-purple-600 hover:bg-purple-700" : ""}
                 >
                   🎤 Voice Recording
                 </Button>
                 <Button
-                  variant={useText ? "default" : "outline"}
-                  onClick={() => setUseText(true)}
-                  className={useText ? "bg-purple-600 hover:bg-purple-700" : ""}
+                  variant={inputMethod === 'upload' ? "default" : "outline"}
+                  onClick={() => setInputMethod('upload')}
+                  className={inputMethod === 'upload' ? "bg-purple-600 hover:bg-purple-700" : ""}
+                >
+                  📁 Upload Audio
+                </Button>
+                <Button
+                  variant={inputMethod === 'text' ? "default" : "outline"}
+                  onClick={() => setInputMethod('text')}
+                  className={inputMethod === 'text' ? "bg-purple-600 hover:bg-purple-700" : ""}
                 >
                   ✏️ Text Input
                 </Button>
               </div>
 
               {/* Voice Recording Interface */}
-              {!useText && (
+              {inputMethod === 'voice' && (
                 <div className="text-center space-y-6">
                   <div className={`mx-auto w-32 h-32 rounded-full flex items-center justify-center transition-all duration-300 ${
                     isRecording 
@@ -419,8 +454,50 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
                 </div>
               )}
 
+              {/* Upload Audio Interface */}
+              {inputMethod === 'upload' && (
+                <div className="text-center space-y-6">
+                  <div className="mx-auto w-32 h-32 rounded-full flex items-center justify-center bg-gradient-to-br from-purple-500 to-blue-600 hover:shadow-lg hover:shadow-purple-200 cursor-pointer transition-all duration-300"
+                       onClick={triggerFileUpload}>
+                    <div className="text-white text-4xl">
+                      📁
+                    </div>
+                  </div>
+                  
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="audio/*"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  
+                  {uploadedFile && (
+                    <div className="text-center">
+                      <div className="text-green-600 mb-2">✅ Audio file uploaded</div>
+                      <div className="text-sm text-gray-600">{uploadedFile.name}</div>
+                      <div className="text-xs text-gray-500">Ready to process your idea</div>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-center">
+                    <Button
+                      onClick={triggerFileUpload}
+                      size="lg"
+                      className="bg-purple-600 hover:bg-purple-700"
+                    >
+                      {uploadedFile ? 'Change Audio File' : 'Select Audio File'}
+                    </Button>
+                  </div>
+                  
+                  <div className="text-sm text-gray-500">
+                    💡 Supported formats: MP3, WAV, M4A, and other audio formats
+                  </div>
+                </div>
+              )}
+
               {/* Text Input Interface */}
-              {useText && (
+              {inputMethod === 'text' && (
                 <div className="space-y-4">
                   <Textarea
                     placeholder="Describe your idea in detail... Include information about what problem it solves, how it works, expected impact, timeline, and any other relevant details."
