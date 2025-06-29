@@ -2,7 +2,9 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import VoiceRecorder from '@/components/VoiceRecorder';
+import VoiceUpload from '@/components/VoiceUpload';
 import IdeaForm from '@/components/IdeaForm';
 import SubmissionStatus from '@/components/SubmissionStatus';
 
@@ -37,7 +39,7 @@ const Index = () => {
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             Transform your ideas into structured submissions using our AI-powered voice assistant. 
-            Simply speak your thoughts, and we'll help you create a complete proposal.
+            Record your thoughts or upload an audio file, and we'll help you create a complete proposal.
           </p>
         </div>
 
@@ -76,7 +78,7 @@ const Index = () => {
         <div className="flex justify-center mb-12">
           <div className="flex items-center justify-between w-80 text-sm text-gray-600">
             <span className={currentStep === 'record' ? 'font-semibold text-purple-600' : ''}>
-              Record Idea
+              Share Your Idea
             </span>
             <span className={currentStep === 'form' ? 'font-semibold text-purple-600' : ''}>
               Review & Complete
@@ -90,7 +92,20 @@ const Index = () => {
         {/* Main Content */}
         <div className="max-w-4xl mx-auto">
           {currentStep === 'record' && (
-            <VoiceRecorder onComplete={handleRecordingComplete} />
+            <Tabs defaultValue="record" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="record">Record Voice</TabsTrigger>
+                <TabsTrigger value="upload">Upload Audio</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="record" className="mt-0">
+                <VoiceRecorder onComplete={handleRecordingComplete} />
+              </TabsContent>
+              
+              <TabsContent value="upload" className="mt-0">
+                <VoiceUpload onComplete={handleRecordingComplete} />
+              </TabsContent>
+            </Tabs>
           )}
           
           {currentStep === 'form' && sessionId && (
