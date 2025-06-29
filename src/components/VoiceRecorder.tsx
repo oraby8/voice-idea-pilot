@@ -223,6 +223,8 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
           description: "Your idea has been analyzed. The form has been auto-filled with the extracted information.",
         });
         
+        // Ensure we don't show missing fields section
+        setShowMissingFields(false);
         onComplete(mappedData);
         
       } else if (data.status === 'incomplete') {
@@ -311,6 +313,8 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
           description: "Your idea has been fully analyzed.",
         });
         
+        // Ensure we don't show missing fields section
+        setShowMissingFields(false);
         onComplete(mappedData);
         
       } else if (data.status === 'incomplete') {
