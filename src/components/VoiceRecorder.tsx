@@ -31,6 +31,18 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
   const missingFieldsTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const startRecording = async () => {
+    // Check if mediaDevices is available
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      console.log('MediaDevices API not available, switching to text input');
+      setUseText(true);
+      toast({
+        title: "Voice Recording Not Available",
+        description: "Your browser doesn't support voice recording. Please use text input instead.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
@@ -58,9 +70,10 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
       
     } catch (error) {
       console.error('Error accessing microphone:', error);
+      setUseText(true);
       toast({
-        title: "Microphone Error",
-        description: "Could not access microphone. Please try text input instead.",
+        title: "Microphone Access Denied",
+        description: "Could not access microphone. Switched to text input mode.",
         variant: "destructive"
       });
     }
@@ -83,6 +96,18 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
   };
 
   const startMissingFieldsRecording = async () => {
+    // Check if mediaDevices is available
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      console.log('MediaDevices API not available for missing fields, switching to text input');
+      setUseMissingFieldsText(true);
+      toast({
+        title: "Voice Recording Not Available",
+        description: "Your browser doesn't support voice recording. Please use text input instead.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
@@ -110,8 +135,9 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
       
     } catch (error) {
       console.error('Error accessing microphone for missing fields:', error);
+      setUseMissingFieldsText(true);
       toast({
-        title: "Microphone Error",
+        title: "Microphone Access Denied",
         description: "Could not access microphone. Please use text input instead.",
         variant: "destructive"
       });
@@ -126,6 +152,22 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
         clearInterval(missingFieldsTimerRef.current);
       }
     }
+  };
+
+  const mapBackendFieldsToFormFields = (backendData: any) => {
+    return {
+      title: backendData.idea_title || '',
+      category: backendData.category || '',
+      description: backendData.solution_details || '',
+      expected_impact: backendData.benefits_and_impact || '',
+      implementation_timeline: backendData.feasibility_and_implementation || '',
+      required_resources: backendData.required_resources || '',
+      // Additional mappings based on your backend structure
+      impact_measures: backendData.impact_measures || '',
+      scalability: backendData.scalability || '',
+      target_audience: backendData.target_audience || '',
+      relevant_entities: backendData.relevant_entities || ''
+    };
   };
 
   const submitRecording = async () => {
@@ -165,10 +207,12 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
       
       // Check status from backend response
       if (data.status === 'complete') {
-        // Map complete data to expected format and proceed directly to form
+        // Map backend field names to form field names
+        const mappedFormData = mapBackendFieldsToFormFields(data.form_data);
+        
         const mappedData = {
           session_id: data.session_id,
-          extracted_fields: data.form_data,
+          extracted_fields: mappedFormData,
           missing_fields: [],
           status: data.status,
           message: data.message || 'Processing complete'
@@ -251,10 +295,12 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
       console.log('Additional info response:', data);
       
       if (data.status === 'complete') {
-        // Now complete, proceed to form
+        // Map backend field names to form field names
+        const mappedFormData = mapBackendFieldsToFormFields(data.form_data);
+        
         const mappedData = {
           session_id: data.session_id,
-          extracted_fields: data.form_data,
+          extracted_fields: mappedFormData,
           missing_fields: [],
           status: data.status,
           message: data.message || 'Processing complete'
