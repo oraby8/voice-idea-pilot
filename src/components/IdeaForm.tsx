@@ -130,68 +130,90 @@ const IdeaForm = ({ sessionId, initialData, onComplete }: IdeaFormProps) => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="title">Idea Title</Label>
-              <Input
-                id="title"
-                value={formData.title || ''}
-                onChange={(e) => handleFieldChange('title', e.target.value)}
-                placeholder="Enter your idea title"
-              />
-            </div>
-            <div>
-              <Label htmlFor="category">Category</Label>
-              <Input
-                id="category"
-                value={formData.category || ''}
-                onChange={(e) => handleFieldChange('category', e.target.value)}
-                placeholder="e.g., Technology, Process Improvement"
-              />
-            </div>
+          <div>
+            <Label htmlFor="title">Idea Title</Label>
+            <Input
+              id="title"
+              value={formData.title || ''}
+              onChange={(e) => handleFieldChange('title', e.target.value)}
+              placeholder="Enter your idea title"
+            />
           </div>
           
           <div>
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">Solution Details</Label>
             <Textarea
               id="description"
               value={formData.description || ''}
               onChange={(e) => handleFieldChange('description', e.target.value)}
-              placeholder="Detailed description of your idea"
+              placeholder="Detailed description of your solution"
               className="min-h-24"
             />
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="expected_impact">Expected Impact</Label>
-              <Textarea
-                id="expected_impact"
-                value={formData.expected_impact || ''}
-                onChange={(e) => handleFieldChange('expected_impact', e.target.value)}
-                placeholder="What impact do you expect?"
-                className="min-h-16"
-              />
-            </div>
-            <div>
-              <Label htmlFor="implementation_timeline">Implementation Timeline</Label>
-              <Input
-                id="implementation_timeline"
-                value={formData.implementation_timeline || ''}
-                onChange={(e) => handleFieldChange('implementation_timeline', e.target.value)}
-                placeholder="e.g., 3-6 months"
-              />
-            </div>
+          <div>
+            <Label htmlFor="expected_impact">Benefits and Impact</Label>
+            <Textarea
+              id="expected_impact"
+              value={formData.expected_impact || ''}
+              onChange={(e) => handleFieldChange('expected_impact', e.target.value)}
+              placeholder="What benefits and impact do you expect?"
+              className="min-h-20"
+            />
           </div>
           
           <div>
-            <Label htmlFor="required_resources">Required Resources</Label>
+            <Label htmlFor="impact_measures">Impact Measures</Label>
             <Textarea
-              id="required_resources"
-              value={formData.required_resources || ''}
-              onChange={(e) => handleFieldChange('required_resources', e.target.value)}
-              placeholder="What resources will be needed?"
+              id="impact_measures"
+              value={formData.impact_measures || ''}
+              onChange={(e) => handleFieldChange('impact_measures', e.target.value)}
+              placeholder="How will you measure the impact?"
               className="min-h-16"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="scalability">Scalability</Label>
+            <Textarea
+              id="scalability"
+              value={formData.scalability || ''}
+              onChange={(e) => handleFieldChange('scalability', e.target.value)}
+              placeholder="How scalable is this solution?"
+              className="min-h-16"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="target_audience">Target Audience</Label>
+            <Textarea
+              id="target_audience"
+              value={formData.target_audience || ''}
+              onChange={(e) => handleFieldChange('target_audience', e.target.value)}
+              placeholder="Who is the target audience for this idea?"
+              className="min-h-16"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="relevant_entities">Relevant Entities</Label>
+            <Textarea
+              id="relevant_entities"
+              value={formData.relevant_entities || ''}
+              onChange={(e) => handleFieldChange('relevant_entities', e.target.value)}
+              placeholder="What departments or entities are relevant?"
+              className="min-h-16"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="implementation_timeline">Feasibility and Implementation</Label>
+            <Textarea
+              id="implementation_timeline"
+              value={formData.implementation_timeline || ''}
+              onChange={(e) => handleFieldChange('implementation_timeline', e.target.value)}
+              placeholder="Timeline, budget, and feasibility details"
+              className="min-h-20"
             />
           </div>
         </CardContent>
