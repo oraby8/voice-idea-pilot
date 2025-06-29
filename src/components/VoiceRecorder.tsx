@@ -1,3 +1,4 @@
+
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -248,29 +249,54 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
       const formData = new FormData();
       formData.append('audio', selectedFile);
 
-      const response = await fetch('/api/upload-voice', {
+      console.log('Uploading audio file to Python backend on port 3000');
+
+      const response = await fetch('http://localhost:3000/start_submission', {
         method: 'POST',
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error('Upload failed');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
       console.log('Upload response:', data);
 
-      toast({
-        title: "Upload Successful",
-        description: "Your voice note has been uploaded and is being processed.",
-      });
+      // Handle response same as voice recording
+      if (data.status === 'complete') {
+        const mappedData = {
+          session_id: data.session_id,
+          form_data: data.form_data,
+          missing_fields: [],
+          status: data.status,
+          message: data.message || 'Processing complete'
+        };
+        
+        toast({
+          title: "Upload Successful",
+          description: "Your audio file has been processed and analyzed.",
+        });
+        
+        setShowMissingFields(false);
+        onComplete(mappedData);
+        
+      } else if (data.status === 'incomplete') {
+        setMissingFieldsData(data);
+        setShowMissingFields(true);
+        
+        toast({
+          title: "Additional Information Needed",
+          description: `Please provide information for ${data.missing_fields.length} missing fields.`,
+          variant: "default"
+        });
+      }
 
-      onComplete(data);
     } catch (error) {
       console.error('Upload error:', error);
       toast({
         title: "Upload Failed",
-        description: "There was an error uploading your voice note. Please try again.",
+        description: "There was an error uploading your audio file. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -619,7 +645,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
               {/* Submit Button */}
               <div className="flex justify-center pt-4">
                 <Button
-                  onClick={submitRecording}
+                  onClick={inputMethod === 'upload' ? uploadFile : submitRecording}
                   disabled={
                     (inputMethod === 'voice' && !audioBlob) ||
                     (inputMethod === 'text' && !textInput.trim()) ||
