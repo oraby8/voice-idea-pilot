@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,30 +18,14 @@ const IdeaForm = ({ sessionId, initialData, onComplete }: IdeaFormProps) => {
   const [missingFields, setMissingFields] = useState(initialData?.missing_fields || []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [clarificationNeeded, setClarificationNeeded] = useState(false);
-  const [currentQuestion, setCurrentQuestion] = useState('');
+  const [currentMessage, setCurrentMessage] = useState(initialData?.message || '');
   const [clarificationResponse, setClarificationResponse] = useState('');
 
   useEffect(() => {
-    if (missingFields.length > 0) {
+    if (missingFields.length > 0 || currentMessage) {
       setClarificationNeeded(true);
-      generateNextQuestion();
     }
-  }, [missingFields]);
-
-  const generateNextQuestion = () => {
-    const fieldMap: { [key: string]: string } = {
-      'budget_estimate': 'What is your estimated budget for this project?',
-      'target_audience': 'Who is the target audience for this idea?',
-      'timeline': 'What is your expected timeline for implementation?',
-      'risks': 'What potential risks or challenges do you foresee?',
-      'success_metrics': 'How will you measure the success of this idea?',
-      'stakeholders': 'Who are the key stakeholders involved?',
-      'technology_requirements': 'What technology or tools will be needed?'
-    };
-
-    const nextField = missingFields[0];
-    setCurrentQuestion(fieldMap[nextField] || `Please provide information about: ${nextField}`);
-  };
+  }, [missingFields, currentMessage]);
 
   const handleClarificationSubmit = async () => {
     if (!clarificationResponse.trim()) {
@@ -74,15 +59,15 @@ const IdeaForm = ({ sessionId, initialData, onComplete }: IdeaFormProps) => {
       }
 
       const data = await response.json();
+      console.log('Clarification response:', data);
       
-      // Update form with new information
-      setFormData(prev => ({ ...prev, ...data.updated_fields }));
-      setMissingFields(data.remaining_missing_fields || []);
+      // Update form with new information from backend
+      setFormData(data.form_data);
+      setMissingFields(data.missing_fields || []);
+      setCurrentMessage(data.message || '');
       setClarificationResponse('');
       
-      if (data.remaining_missing_fields && data.remaining_missing_fields.length > 0) {
-        generateNextQuestion();
-      } else {
+      if (data.status === 'complete') {
         setClarificationNeeded(false);
         toast({
           title: "Information Complete",
@@ -107,7 +92,7 @@ const IdeaForm = ({ sessionId, initialData, onComplete }: IdeaFormProps) => {
     setIsSubmitting(true);
     
     try {
-      console.log('Final submission to Python backend:', { sessionId, formData });
+      console.log('Final submission:', { sessionId, formData });
       
       toast({
         title: "Submission Successful",
@@ -213,7 +198,7 @@ const IdeaForm = ({ sessionId, initialData, onComplete }: IdeaFormProps) => {
       </Card>
 
       {/* Clarification Section */}
-      {clarificationNeeded && (
+      {clarificationNeeded && currentMessage && (
         <Card className="backdrop-blur-sm bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200 shadow-xl">
           <CardHeader>
             <CardTitle className="text-xl font-bold text-amber-800 flex items-center">
@@ -226,7 +211,7 @@ const IdeaForm = ({ sessionId, initialData, onComplete }: IdeaFormProps) => {
           <CardContent className="space-y-4">
             <div className="bg-white/50 p-4 rounded-lg">
               <Label className="text-base font-medium text-gray-700">
-                {currentQuestion}
+                {currentMessage}
               </Label>
               <Textarea
                 value={clarificationResponse}
@@ -253,9 +238,9 @@ const IdeaForm = ({ sessionId, initialData, onComplete }: IdeaFormProps) => {
               </Button>
             </div>
             
-            {missingFields.length > 1 && (
+            {missingFields.length > 0 && (
               <div className="text-sm text-amber-700 bg-amber-100 p-2 rounded">
-                📝 {missingFields.length} questions remaining
+                📝 Missing fields: {missingFields.join(', ')}
               </div>
             )}
           </CardContent>

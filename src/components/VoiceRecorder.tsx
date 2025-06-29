@@ -1,3 +1,4 @@
+
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -81,7 +82,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
       const formData = new FormData();
       
       if (audioBlob && !useText) {
-        formData.append('audio', audioBlob, 'recording.webm');
+        formData.append('audio', audioBlob);
       } else {
         formData.append('text', textInput);
       }
@@ -100,12 +101,21 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
       const data = await response.json();
       console.log('Received response from backend:', data);
       
+      // Map backend response to frontend expected format
+      const mappedData = {
+        session_id: data.session_id,
+        extracted_fields: data.form_data,
+        missing_fields: data.missing_fields,
+        status: data.status,
+        message: data.message
+      };
+      
       toast({
         title: "Processing Complete",
         description: "Your idea has been analyzed. Please review the extracted information.",
       });
       
-      onComplete(data);
+      onComplete(mappedData);
       
     } catch (error) {
       console.error('Error connecting to Python backend:', error);

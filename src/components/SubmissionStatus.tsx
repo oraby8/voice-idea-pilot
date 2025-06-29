@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,8 +46,19 @@ const SubmissionStatus = ({ sessionId, onReset }: SubmissionStatusProps) => {
     }
   };
 
+  // Map backend status to display status
+  const getDisplayStatus = (backendStatus: string) => {
+    switch (backendStatus) {
+      case 'complete': return 'completed';
+      case 'needs_clarification': return 'processing';
+      case 'connection_error': return 'connection_error';
+      default: return 'pending';
+    }
+  };
+
   const getStatusColor = (status: string) => {
-    switch (status) {
+    const displayStatus = getDisplayStatus(status);
+    switch (displayStatus) {
       case 'completed': return 'bg-green-500';
       case 'processing': return 'bg-blue-500';
       case 'pending': return 'bg-yellow-500';
@@ -57,7 +69,8 @@ const SubmissionStatus = ({ sessionId, onReset }: SubmissionStatusProps) => {
   };
 
   const getStatusIcon = (status: string) => {
-    switch (status) {
+    const displayStatus = getDisplayStatus(status);
+    switch (displayStatus) {
       case 'completed': return '✅';
       case 'processing': return '⏳';
       case 'pending': return '⏰';
@@ -80,6 +93,8 @@ const SubmissionStatus = ({ sessionId, onReset }: SubmissionStatusProps) => {
     );
   }
 
+  const displayStatus = getDisplayStatus(status?.status);
+
   return (
     <div className="space-y-6">
       {/* Status Overview */}
@@ -90,12 +105,14 @@ const SubmissionStatus = ({ sessionId, onReset }: SubmissionStatusProps) => {
           </div>
           <CardTitle className="text-2xl font-bold text-gray-800">
             {status?.status === 'connection_error' ? 'Connection Error' : 
-             status?.status === 'completed' ? 'Submission Successful' : 'Submission Status'}
+             displayStatus === 'completed' ? 'Submission Complete' : 'Submission Status'}
           </CardTitle>
           <CardDescription className="text-lg">
             {status?.status === 'connection_error' 
               ? 'Could not connect to Python backend on port 3000'
-              : 'Your idea has been processed and submitted to the review system'
+              : displayStatus === 'completed'
+              ? 'Your idea has been successfully processed'
+              : 'Your idea is being processed'
             }
           </CardDescription>
         </CardHeader>
@@ -103,7 +120,7 @@ const SubmissionStatus = ({ sessionId, onReset }: SubmissionStatusProps) => {
           {/* Status Badge */}
           <div className="flex justify-center">
             <Badge className={`${getStatusColor(status?.status)} text-white px-4 py-2 text-base`}>
-              {status?.status === 'connection_error' ? 'CONNECTION ERROR' : status?.status?.toUpperCase()}
+              {status?.status === 'connection_error' ? 'CONNECTION ERROR' : displayStatus.toUpperCase()}
             </Badge>
           </div>
 
@@ -117,76 +134,39 @@ const SubmissionStatus = ({ sessionId, onReset }: SubmissionStatusProps) => {
             </div>
           )}
 
-          {/* Submission Details */}
+          {/* Session Details */}
           {status?.status !== 'connection_error' && (
             <div className="bg-gray-50 rounded-lg p-6 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="font-medium text-gray-600">Submission ID:</span>
-                  <div className="font-mono text-purple-600">{status?.submission_id}</div>
-                </div>
                 <div>
                   <span className="font-medium text-gray-600">Session ID:</span>
                   <div className="font-mono text-purple-600">{status?.session_id}</div>
                 </div>
                 <div>
-                  <span className="font-medium text-gray-600">Submitted:</span>
-                  <div>{new Date(status?.created_at).toLocaleString()}</div>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-600">Processed:</span>
-                  <div>{new Date(status?.processed_at).toLocaleString()}</div>
+                  <span className="font-medium text-gray-600">Status:</span>
+                  <div className="capitalize">{status?.status?.replace('_', ' ')}</div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Idea Summary */}
-          {status?.summary && (
+          {/* Form Data Display */}
+          {status?.form_data && (
             <Card className="bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
               <CardHeader>
-                <CardTitle className="text-lg">📋 Submission Summary</CardTitle>
+                <CardTitle className="text-lg">📋 Extracted Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div>
-                  <span className="font-medium text-gray-600">Title:</span>
-                  <div className="text-lg font-semibold text-gray-800">{status.summary.title}</div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <span className="font-medium text-gray-600">Category:</span>
-                    <div>{status.summary.category}</div>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-600">Priority:</span>
-                    <Badge variant="outline" className="ml-2">
-                      {status.summary.priority}
-                    </Badge>
-                  </div>
-                </div>
-                <div>
-                  <span className="font-medium text-gray-600">Impact Assessment:</span>
-                  <div className="text-gray-700">{status.summary.estimated_impact}</div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Next Steps */}
-          {status?.next_steps && status.next_steps.length > 0 && (
-            <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
-              <CardHeader>
-                <CardTitle className="text-lg">🚀 Next Steps</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {status.next_steps.map((step: string, index: number) => (
-                    <li key={index} className="flex items-start">
-                      <span className="text-green-600 mr-2">•</span>
-                      <span className="text-gray-700">{step}</span>
-                    </li>
-                  ))}
-                </ul>
+                {Object.entries(status.form_data).map(([key, value]) => (
+                  value ? (
+                    <div key={key}>
+                      <span className="font-medium text-gray-600 capitalize">
+                        {key.replace('_', ' ')}:
+                      </span>
+                      <div className="text-gray-800">{String(value)}</div>
+                    </div>
+                  ) : null
+                ))}
               </CardContent>
             </Card>
           )}
@@ -206,7 +186,7 @@ const SubmissionStatus = ({ sessionId, onReset }: SubmissionStatusProps) => {
               className="bg-purple-600 hover:bg-purple-700 px-6"
               size="lg"
             >
-              View Dashboard
+              Refresh Status
             </Button>
           </div>
         </CardContent>
