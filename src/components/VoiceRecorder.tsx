@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
+import { Upload, File, X, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface VoiceRecorderProps {
@@ -14,10 +15,15 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [textInput, setTextInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [useText, setUseText] = useState(false);
+  const [inputMethod, setInputMethod] = useState<'voice' | 'text' | 'upload'>('voice');
   const [showMissingFields, setShowMissingFields] = useState(false);
   const [missingFieldsData, setMissingFieldsData] = useState<any>(null);
   const [additionalInput, setAdditionalInput] = useState('');
+  
+  // Upload states
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Missing fields voice recording states
   const [isMissingFieldsRecording, setIsMissingFieldsRecording] = useState(false);
@@ -34,7 +40,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
     // Check if mediaDevices is available
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       console.log('MediaDevices API not available, switching to text input');
-      setUseText(true);
+      setInputMethod('text');
       toast({
         title: "Voice Recording Not Available",
         description: "Your browser doesn't support voice recording. Please use text input instead.",
@@ -70,7 +76,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
       
     } catch (error) {
       console.error('Error accessing microphone:', error);
-      setUseText(true);
+      setInputMethod('text');
       toast({
         title: "Microphone Access Denied",
         description: "Could not access microphone. Switched to text input mode.",
@@ -169,7 +175,115 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
     };
   };
 
+  const handleFileSelect = (file: File) => {
+    // Check file type
+    if (!file.type.startsWith('audio/')) {
+      toast({
+        title: "Invalid File Type",
+        description: "Please upload an audio file (MP3, WAV, M4A, etc.)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check file size (limit to 25MB)
+    if (file.size > 25 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "Please upload a file smaller than 25MB",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedFile(file);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragActive(false);
+    
+    const files = e.dataTransfer.files;
+    if (files && files[0]) {
+      handleFileSelect(files[0]);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragActive(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragActive(false);
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFileSelect(e.target.files[0]);
+    }
+  };
+
+  const removeFile = () => {
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const uploadFile = async () => {
+    if (!selectedFile) return;
+
+    setIsProcessing(true);
+    try {
+      const formData = new FormData();
+      formData.append('audio', selectedFile);
+
+      const response = await fetch('/api/upload-voice', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+      console.log('Upload response:', data);
+
+      toast({
+        title: "Upload Successful",
+        description: "Your voice note has been uploaded and is being processed.",
+      });
+
+      onComplete(data);
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload Failed",
+        description: "There was an error uploading your voice note. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const submitRecording = async () => {
+    if (inputMethod === 'upload') {
+      await uploadFile();
+      return;
+    }
+
     if (!audioBlob && !textInput.trim()) {
       toast({
         title: "No Input",
@@ -184,13 +298,13 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
     try {
       const formData = new FormData();
       
-      if (audioBlob && !useText) {
+      if (audioBlob && inputMethod === 'voice') {
         formData.append('audio', audioBlob);
       } else {
         formData.append('text', textInput);
       }
       
-      console.log('Submitting to Python backend on port 3000:', useText ? 'text' : 'audio');
+      console.log('Submitting to Python backend on port 3000:', inputMethod === 'text' ? 'text' : 'audio');
       
       const response = await fetch('http://localhost:3000/start_submission', {
         method: 'POST',
@@ -351,25 +465,32 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
           {!showMissingFields ? (
             <>
               {/* Method Toggle */}
-              <div className="flex justify-center space-x-4">
+              <div className="flex justify-center space-x-2">
                 <Button
-                  variant={!useText ? "default" : "outline"}
-                  onClick={() => setUseText(false)}
-                  className={!useText ? "bg-purple-600 hover:bg-purple-700" : ""}
+                  variant={inputMethod === 'voice' ? "default" : "outline"}
+                  onClick={() => setInputMethod('voice')}
+                  className={inputMethod === 'voice' ? "bg-purple-600 hover:bg-purple-700" : ""}
                 >
                   🎤 Voice Recording
                 </Button>
                 <Button
-                  variant={useText ? "default" : "outline"}
-                  onClick={() => setUseText(true)}
-                  className={useText ? "bg-purple-600 hover:bg-purple-700" : ""}
+                  variant={inputMethod === 'text' ? "default" : "outline"}
+                  onClick={() => setInputMethod('text')}
+                  className={inputMethod === 'text' ? "bg-purple-600 hover:bg-purple-700" : ""}
                 >
                   ✏️ Text Input
+                </Button>
+                <Button
+                  variant={inputMethod === 'upload' ? "default" : "outline"}
+                  onClick={() => setInputMethod('upload')}
+                  className={inputMethod === 'upload' ? "bg-purple-600 hover:bg-purple-700" : ""}
+                >
+                  📁 Upload Audio
                 </Button>
               </div>
 
               {/* Voice Recording Interface */}
-              {!useText && (
+              {inputMethod === 'voice' && (
                 <div className="text-center space-y-6">
                   <div className={`mx-auto w-32 h-32 rounded-full flex items-center justify-center transition-all duration-300 ${
                     isRecording 
@@ -420,7 +541,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
               )}
 
               {/* Text Input Interface */}
-              {useText && (
+              {inputMethod === 'text' && (
                 <div className="space-y-4">
                   <Textarea
                     placeholder="Describe your idea in detail... Include information about what problem it solves, how it works, expected impact, timeline, and any other relevant details."
@@ -434,11 +555,77 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
                 </div>
               )}
 
+              {/* Upload Interface */}
+              {inputMethod === 'upload' && (
+                <div className="space-y-4">
+                  {!selectedFile ? (
+                    <div
+                      className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                        dragActive
+                          ? 'border-purple-500 bg-purple-50'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                      onDrop={handleDrop}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                    >
+                      <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                      <p className="text-lg font-medium mb-2">Drop your audio file here</p>
+                      <p className="text-gray-500 mb-4">or</p>
+                      <Button
+                        onClick={() => fileInputRef.current?.click()}
+                        variant="outline"
+                        className="mb-2"
+                      >
+                        Browse Files
+                      </Button>
+                      <p className="text-sm text-gray-500">
+                        Supported formats: MP3, WAV, M4A, FLAC, OGG (Max 25MB)
+                      </p>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="audio/*"
+                        onChange={handleFileInputChange}
+                        className="hidden"
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <File className="w-8 h-8 text-purple-600" />
+                          <div>
+                            <p className="font-medium">{selectedFile.name}</p>
+                            <p className="text-sm text-gray-500">
+                              {formatFileSize(selectedFile.size)}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          onClick={removeFile}
+                          variant="ghost"
+                          size="sm"
+                          className="text-gray-500 hover:text-red-500"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Submit Button */}
               <div className="flex justify-center pt-4">
                 <Button
                   onClick={submitRecording}
-                  disabled={(!audioBlob && !textInput.trim()) || isProcessing}
+                  disabled={
+                    (inputMethod === 'voice' && !audioBlob) ||
+                    (inputMethod === 'text' && !textInput.trim()) ||
+                    (inputMethod === 'upload' && !selectedFile) ||
+                    isProcessing
+                  }
                   size="lg"
                   className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 px-8"
                 >
