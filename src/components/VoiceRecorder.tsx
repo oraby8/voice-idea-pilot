@@ -165,7 +165,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
       
       // Check status from backend response
       if (data.status === 'complete') {
-        // Map complete data to expected format and proceed
+        // Map complete data to expected format and proceed directly to form
         const mappedData = {
           session_id: data.session_id,
           extracted_fields: data.form_data,
@@ -176,7 +176,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
         
         toast({
           title: "Processing Complete",
-          description: "Your idea has been analyzed. Please review the extracted information.",
+          description: "Your idea has been analyzed. The form has been auto-filled with the extracted information.",
         });
         
         onComplete(mappedData);
