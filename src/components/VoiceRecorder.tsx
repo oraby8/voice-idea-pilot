@@ -2,7 +2,6 @@ import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, File, X, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 interface VoiceRecorderProps {
@@ -15,7 +14,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [textInput, setTextInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [inputMethod, setInputMethod] = useState<'voice' | 'text'>('voice');
+  const [useText, setUseText] = useState(false);
   const [showMissingFields, setShowMissingFields] = useState(false);
   const [missingFieldsData, setMissingFieldsData] = useState<any>(null);
   const [additionalInput, setAdditionalInput] = useState('');
@@ -35,7 +34,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
     // Check if mediaDevices is available
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       console.log('MediaDevices API not available, switching to text input');
-      setInputMethod('text');
+      setUseText(true);
       toast({
         title: "Voice Recording Not Available",
         description: "Your browser doesn't support voice recording. Please use text input instead.",
@@ -71,7 +70,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
       
     } catch (error) {
       console.error('Error accessing microphone:', error);
-      setInputMethod('text');
+      setUseText(true);
       toast({
         title: "Microphone Access Denied",
         description: "Could not access microphone. Switched to text input mode.",
@@ -185,13 +184,13 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
     try {
       const formData = new FormData();
       
-      if (audioBlob && inputMethod === 'voice') {
+      if (audioBlob && !useText) {
         formData.append('audio', audioBlob);
       } else {
         formData.append('text', textInput);
       }
       
-      console.log('Submitting to Python backend on port 3000:', inputMethod === 'text' ? 'text' : 'audio');
+      console.log('Submitting to Python backend on port 3000:', useText ? 'text' : 'audio');
       
       const response = await fetch('http://localhost:3000/start_submission', {
         method: 'POST',
@@ -352,25 +351,25 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
           {!showMissingFields ? (
             <>
               {/* Method Toggle */}
-              <div className="flex justify-center space-x-2">
+              <div className="flex justify-center space-x-4">
                 <Button
-                  variant={inputMethod === 'voice' ? "default" : "outline"}
-                  onClick={() => setInputMethod('voice')}
-                  className={inputMethod === 'voice' ? "bg-purple-600 hover:bg-purple-700" : ""}
+                  variant={!useText ? "default" : "outline"}
+                  onClick={() => setUseText(false)}
+                  className={!useText ? "bg-purple-600 hover:bg-purple-700" : ""}
                 >
                   🎤 Voice Recording
                 </Button>
                 <Button
-                  variant={inputMethod === 'text' ? "default" : "outline"}
-                  onClick={() => setInputMethod('text')}
-                  className={inputMethod === 'text' ? "bg-purple-600 hover:bg-purple-700" : ""}
+                  variant={useText ? "default" : "outline"}
+                  onClick={() => setUseText(true)}
+                  className={useText ? "bg-purple-600 hover:bg-purple-700" : ""}
                 >
                   ✏️ Text Input
                 </Button>
               </div>
 
               {/* Voice Recording Interface */}
-              {inputMethod === 'voice' && (
+              {!useText && (
                 <div className="text-center space-y-6">
                   <div className={`mx-auto w-32 h-32 rounded-full flex items-center justify-center transition-all duration-300 ${
                     isRecording 
@@ -421,7 +420,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
               )}
 
               {/* Text Input Interface */}
-              {inputMethod === 'text' && (
+              {useText && (
                 <div className="space-y-4">
                   <Textarea
                     placeholder="Describe your idea in detail... Include information about what problem it solves, how it works, expected impact, timeline, and any other relevant details."
@@ -439,11 +438,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
               <div className="flex justify-center pt-4">
                 <Button
                   onClick={submitRecording}
-                  disabled={
-                    (inputMethod === 'voice' && !audioBlob) ||
-                    (inputMethod === 'text' && !textInput.trim()) ||
-                    isProcessing
-                  }
+                  disabled={(!audioBlob && !textInput.trim()) || isProcessing}
                   size="lg"
                   className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 px-8"
                 >

@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import VoiceRecorder from '@/components/VoiceRecorder';
-import VoiceUpload from '@/components/VoiceUpload';
 import IdeaForm from '@/components/IdeaForm';
 import SubmissionStatus from '@/components/SubmissionStatus';
 
@@ -38,7 +37,7 @@ const Index = () => {
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             Transform your ideas into structured submissions using our AI-powered voice assistant. 
-            Record your thoughts or upload an audio file, and we'll help you create a complete proposal.
+            Simply speak your thoughts, and we'll help you create a complete proposal.
           </p>
         </div>
 
@@ -77,7 +76,7 @@ const Index = () => {
         <div className="flex justify-center mb-12">
           <div className="flex items-center justify-between w-80 text-sm text-gray-600">
             <span className={currentStep === 'record' ? 'font-semibold text-purple-600' : ''}>
-              Share Your Idea
+              Record Idea
             </span>
             <span className={currentStep === 'form' ? 'font-semibold text-purple-600' : ''}>
               Review & Complete
@@ -91,10 +90,7 @@ const Index = () => {
         {/* Main Content */}
         <div className="max-w-4xl mx-auto">
           {currentStep === 'record' && (
-            <div className="grid gap-8 md:grid-cols-2">
-              <VoiceRecorder onComplete={handleRecordingComplete} />
-              <VoiceUpload onComplete={handleRecordingComplete} />
-            </div>
+            <VoiceRecorder onComplete={handleRecordingComplete} />
           )}
           
           {currentStep === 'form' && sessionId && (
