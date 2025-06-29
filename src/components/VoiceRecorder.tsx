@@ -19,8 +19,16 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
   const [missingFieldsData, setMissingFieldsData] = useState<any>(null);
   const [additionalInput, setAdditionalInput] = useState('');
   
+  // Missing fields voice recording states
+  const [isMissingFieldsRecording, setIsMissingFieldsRecording] = useState(false);
+  const [missingFieldsRecordingTime, setMissingFieldsRecordingTime] = useState(0);
+  const [missingFieldsAudioBlob, setMissingFieldsAudioBlob] = useState<Blob | null>(null);
+  const [useMissingFieldsText, setUseMissingFieldsText] = useState(true);
+  
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const missingFieldsMediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const missingFieldsTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const startRecording = async () => {
     try {
@@ -72,6 +80,52 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const startMissingFieldsRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      missingFieldsMediaRecorderRef.current = mediaRecorder;
+      
+      const audioChunks: BlobPart[] = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunks.push(event.data);
+      };
+      
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        setMissingFieldsAudioBlob(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+      
+      mediaRecorder.start();
+      setIsMissingFieldsRecording(true);
+      setMissingFieldsRecordingTime(0);
+      
+      missingFieldsTimerRef.current = setInterval(() => {
+        setMissingFieldsRecordingTime(prev => prev + 1);
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Error accessing microphone for missing fields:', error);
+      toast({
+        title: "Microphone Error",
+        description: "Could not access microphone. Please use text input instead.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const stopMissingFieldsRecording = () => {
+    if (missingFieldsMediaRecorderRef.current && isMissingFieldsRecording) {
+      missingFieldsMediaRecorderRef.current.stop();
+      setIsMissingFieldsRecording(false);
+      if (missingFieldsTimerRef.current) {
+        clearInterval(missingFieldsTimerRef.current);
+      }
+    }
   };
 
   const submitRecording = async () => {
@@ -161,10 +215,10 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
   };
 
   const submitAdditionalInfo = async () => {
-    if (!additionalInput.trim()) {
+    if (!missingFieldsAudioBlob && !additionalInput.trim()) {
       toast({
         title: "No Input",
-        description: "Please provide additional information.",
+        description: "Please provide additional information via voice or text.",
         variant: "destructive"
       });
       return;
@@ -174,10 +228,15 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
     
     try {
       const formData = new FormData();
-      formData.append('text', additionalInput);
+      
+      if (missingFieldsAudioBlob && !useMissingFieldsText) {
+        formData.append('audio', missingFieldsAudioBlob);
+      } else {
+        formData.append('text', additionalInput);
+      }
       formData.append('session_id', missingFieldsData.session_id);
       
-      console.log('Submitting additional info to backend');
+      console.log('Submitting additional info to backend:', useMissingFieldsText ? 'text' : 'audio');
       
       const response = await fetch('http://localhost:3000/start_submission', {
         method: 'POST',
@@ -212,6 +271,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
         // Still incomplete, update missing fields
         setMissingFieldsData(data);
         setAdditionalInput('');
+        setMissingFieldsAudioBlob(null);
         
         toast({
           title: "More Information Needed",
@@ -380,40 +440,111 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
                 </div>
               )}
 
-              <div className="space-y-4">
-                <Textarea
-                  placeholder="Please provide the missing information. You can address multiple fields in your response..."
-                  value={additionalInput}
-                  onChange={(e) => setAdditionalInput(e.target.value)}
-                  className="min-h-32 text-base"
-                />
-                
-                <div className="flex justify-center space-x-4">
-                  <Button
-                    onClick={() => {
-                      setShowMissingFields(false);
-                      setMissingFieldsData(null);
-                      setAdditionalInput('');
-                    }}
-                    variant="outline"
-                  >
-                    Start Over
-                  </Button>
-                  <Button
-                    onClick={submitAdditionalInfo}
-                    disabled={!additionalInput.trim() || isProcessing}
-                    className="bg-amber-600 hover:bg-amber-700"
-                  >
-                    {isProcessing ? (
-                      <>
-                        <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                        Processing...
-                      </>
+              {/* Method Toggle for Missing Fields */}
+              <div className="flex justify-center space-x-4">
+                <Button
+                  variant={!useMissingFieldsText ? "default" : "outline"}
+                  onClick={() => setUseMissingFieldsText(false)}
+                  className={!useMissingFieldsText ? "bg-amber-600 hover:bg-amber-700" : ""}
+                >
+                  🎤 Voice Response
+                </Button>
+                <Button
+                  variant={useMissingFieldsText ? "default" : "outline"}
+                  onClick={() => setUseMissingFieldsText(true)}
+                  className={useMissingFieldsText ? "bg-amber-600 hover:bg-amber-700" : ""}
+                >
+                  ✏️ Text Response
+                </Button>
+              </div>
+
+              {/* Voice Recording Interface for Missing Fields */}
+              {!useMissingFieldsText && (
+                <div className="text-center space-y-4">
+                  <div className={`mx-auto w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 ${
+                    isMissingFieldsRecording 
+                      ? 'bg-red-500 animate-pulse shadow-lg shadow-red-200' 
+                      : 'bg-gradient-to-br from-amber-500 to-orange-600 hover:shadow-lg hover:shadow-amber-200 cursor-pointer'
+                  }`}>
+                    <div className="text-white text-2xl">
+                      {isMissingFieldsRecording ? '⏹️' : '🎤'}
+                    </div>
+                  </div>
+                  
+                  {isMissingFieldsRecording && (
+                    <div className="text-center">
+                      <div className="text-lg font-mono text-red-600 mb-2">
+                        {formatTime(missingFieldsRecordingTime)}
+                      </div>
+                      <div className="text-sm text-gray-600">Recording response...</div>
+                    </div>
+                  )}
+                  
+                  {missingFieldsAudioBlob && !isMissingFieldsRecording && (
+                    <div className="text-center">
+                      <div className="text-green-600 mb-2">✅ Response recorded</div>
+                      <div className="text-sm text-gray-600">Ready to submit</div>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-center space-x-4">
+                    {!isMissingFieldsRecording ? (
+                      <Button
+                        onClick={startMissingFieldsRecording}
+                        className="bg-amber-600 hover:bg-amber-700"
+                      >
+                        Start Recording
+                      </Button>
                     ) : (
-                      'Submit Additional Info'
+                      <Button
+                        onClick={stopMissingFieldsRecording}
+                        variant="destructive"
+                      >
+                        Stop Recording
+                      </Button>
                     )}
-                  </Button>
+                  </div>
                 </div>
+              )}
+
+              {/* Text Input Interface for Missing Fields */}
+              {useMissingFieldsText && (
+                <div className="space-y-4">
+                  <Textarea
+                    placeholder="Please provide the missing information. You can address multiple fields in your response..."
+                    value={additionalInput}
+                    onChange={(e) => setAdditionalInput(e.target.value)}
+                    className="min-h-32 text-base"
+                  />
+                </div>
+              )}
+              
+              <div className="flex justify-center space-x-4">
+                <Button
+                  onClick={() => {
+                    setShowMissingFields(false);
+                    setMissingFieldsData(null);
+                    setAdditionalInput('');
+                    setMissingFieldsAudioBlob(null);
+                  }}
+                  variant="outline"
+                >
+                  Start Over
+                </Button>
+                <Button
+                  onClick={submitAdditionalInfo}
+                  disabled={(!additionalInput.trim() && !missingFieldsAudioBlob) || isProcessing}
+                  className="bg-amber-600 hover:bg-amber-700"
+                >
+                  {isProcessing ? (
+                    <>
+                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Submit Additional Info'
+                  )}
+                </Button>
               </div>
             </div>
           )}
