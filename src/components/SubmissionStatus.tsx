@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,9 +20,9 @@ const SubmissionStatus = ({ sessionId, onReset }: SubmissionStatusProps) => {
 
   const fetchStatus = async () => {
     try {
-      console.log('Fetching status for session:', sessionId);
+      console.log('Fetching status from Python backend for session:', sessionId);
       
-      const response = await fetch(`/submission_status/${sessionId}`);
+      const response = await fetch(`http://localhost:3000/submission_status/${sessionId}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -33,29 +32,14 @@ const SubmissionStatus = ({ sessionId, onReset }: SubmissionStatusProps) => {
       setStatus(data);
       
     } catch (error) {
-      console.error('Error fetching status:', error);
+      console.error('Error connecting to Python backend for status:', error);
       
-      // Mock status for demonstration
-      const mockStatus = {
+      // Show connection error in UI
+      setStatus({
         session_id: sessionId,
-        status: 'completed',
-        submission_id: 'SUB_' + Date.now(),
-        created_at: new Date().toISOString(),
-        processed_at: new Date().toISOString(),
-        summary: {
-          title: 'Smart Parking Solution',
-          category: 'Technology',
-          priority: 'High',
-          estimated_impact: 'Significant cost savings and improved user experience'
-        },
-        next_steps: [
-          'Technical feasibility review scheduled',
-          'Budget approval process initiated',
-          'Stakeholder presentation scheduled for next week'
-        ]
-      };
-      
-      setStatus(mockStatus);
+        status: 'connection_error',
+        error: 'Could not connect to Python backend on port 3000'
+      });
     } finally {
       setLoading(false);
     }
@@ -67,6 +51,7 @@ const SubmissionStatus = ({ sessionId, onReset }: SubmissionStatusProps) => {
       case 'processing': return 'bg-blue-500';
       case 'pending': return 'bg-yellow-500';
       case 'failed': return 'bg-red-500';
+      case 'connection_error': return 'bg-red-500';
       default: return 'bg-gray-500';
     }
   };
@@ -77,6 +62,7 @@ const SubmissionStatus = ({ sessionId, onReset }: SubmissionStatusProps) => {
       case 'processing': return '⏳';
       case 'pending': return '⏰';
       case 'failed': return '❌';
+      case 'connection_error': return '🔌';
       default: return '❓';
     }
   };
@@ -103,41 +89,57 @@ const SubmissionStatus = ({ sessionId, onReset }: SubmissionStatusProps) => {
             {getStatusIcon(status?.status)}
           </div>
           <CardTitle className="text-2xl font-bold text-gray-800">
-            Submission {status?.status === 'completed' ? 'Successful' : 'Status'}
+            {status?.status === 'connection_error' ? 'Connection Error' : 
+             status?.status === 'completed' ? 'Submission Successful' : 'Submission Status'}
           </CardTitle>
           <CardDescription className="text-lg">
-            Your idea has been processed and submitted to the review system
+            {status?.status === 'connection_error' 
+              ? 'Could not connect to Python backend on port 3000'
+              : 'Your idea has been processed and submitted to the review system'
+            }
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Status Badge */}
           <div className="flex justify-center">
             <Badge className={`${getStatusColor(status?.status)} text-white px-4 py-2 text-base`}>
-              {status?.status?.toUpperCase()}
+              {status?.status === 'connection_error' ? 'CONNECTION ERROR' : status?.status?.toUpperCase()}
             </Badge>
           </div>
 
-          {/* Submission Details */}
-          <div className="bg-gray-50 rounded-lg p-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="font-medium text-gray-600">Submission ID:</span>
-                <div className="font-mono text-purple-600">{status?.submission_id}</div>
-              </div>
-              <div>
-                <span className="font-medium text-gray-600">Session ID:</span>
-                <div className="font-mono text-purple-600">{status?.session_id}</div>
-              </div>
-              <div>
-                <span className="font-medium text-gray-600">Submitted:</span>
-                <div>{new Date(status?.created_at).toLocaleString()}</div>
-              </div>
-              <div>
-                <span className="font-medium text-gray-600">Processed:</span>
-                <div>{new Date(status?.processed_at).toLocaleString()}</div>
+          {/* Error Message */}
+          {status?.status === 'connection_error' && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <div className="text-red-800 font-medium">Backend Connection Failed</div>
+              <div className="text-red-600 text-sm mt-1">
+                Please ensure your Python backend is running on port 3000
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Submission Details */}
+          {status?.status !== 'connection_error' && (
+            <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium text-gray-600">Submission ID:</span>
+                  <div className="font-mono text-purple-600">{status?.submission_id}</div>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Session ID:</span>
+                  <div className="font-mono text-purple-600">{status?.session_id}</div>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Submitted:</span>
+                  <div>{new Date(status?.created_at).toLocaleString()}</div>
+                </div>
+                <div>
+                  <span className="font-medium text-gray-600">Processed:</span>
+                  <div>{new Date(status?.processed_at).toLocaleString()}</div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Idea Summary */}
           {status?.summary && (

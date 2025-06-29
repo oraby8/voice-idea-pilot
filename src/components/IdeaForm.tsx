@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -56,12 +55,12 @@ const IdeaForm = ({ sessionId, initialData, onComplete }: IdeaFormProps) => {
     setIsSubmitting(true);
     
     try {
-      console.log('Submitting clarification:', {
+      console.log('Submitting clarification to Python backend:', {
         session_id: sessionId,
         response: clarificationResponse
       });
 
-      const response = await fetch('/provide_clarification', {
+      const response = await fetch('http://localhost:3000/provide_clarification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -92,26 +91,13 @@ const IdeaForm = ({ sessionId, initialData, onComplete }: IdeaFormProps) => {
       }
 
     } catch (error) {
-      console.error('Error submitting clarification:', error);
+      console.error('Error connecting to Python backend for clarification:', error);
       
-      // Mock response for demonstration
-      const currentField = missingFields[0];
-      const updatedFormData = { ...formData, [currentField]: clarificationResponse };
-      const remainingFields = missingFields.slice(1);
-      
-      setFormData(updatedFormData);
-      setMissingFields(remainingFields);
-      setClarificationResponse('');
-      
-      if (remainingFields.length > 0) {
-        generateNextQuestion();
-      } else {
-        setClarificationNeeded(false);
-        toast({
-          title: "Demo Mode - Information Complete",
-          description: "All required fields have been filled. You can now review and submit.",
-        });
-      }
+      toast({
+        title: "Backend Connection Error",
+        description: "Could not connect to Python backend on port 3000. Please ensure your backend is running.",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -121,8 +107,7 @@ const IdeaForm = ({ sessionId, initialData, onComplete }: IdeaFormProps) => {
     setIsSubmitting(true);
     
     try {
-      // In a real implementation, this would be your final submission endpoint
-      console.log('Final submission:', { sessionId, formData });
+      console.log('Final submission to Python backend:', { sessionId, formData });
       
       toast({
         title: "Submission Successful",

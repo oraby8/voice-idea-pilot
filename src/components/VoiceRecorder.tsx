@@ -1,4 +1,3 @@
-
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -87,9 +86,9 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
         formData.append('text', textInput);
       }
       
-      console.log('Submitting to /start_submission:', useText ? 'text' : 'audio');
+      console.log('Submitting to Python backend on port 3000:', useText ? 'text' : 'audio');
       
-      const response = await fetch('/start_submission', {
+      const response = await fetch('http://localhost:3000/start_submission', {
         method: 'POST',
         body: formData
       });
@@ -99,7 +98,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
       }
       
       const data = await response.json();
-      console.log('Received response:', data);
+      console.log('Received response from backend:', data);
       
       toast({
         title: "Processing Complete",
@@ -109,29 +108,13 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
       onComplete(data);
       
     } catch (error) {
-      console.error('Error submitting:', error);
-      
-      // Mock response for demonstration
-      const mockData = {
-        session_id: 'mock_' + Date.now(),
-        extracted_fields: {
-          title: 'Smart Parking Solution',
-          description: 'An AI-powered system to optimize parking space utilization',
-          category: 'Technology',
-          expected_impact: 'Reduce parking search time by 40%',
-          implementation_timeline: '6 months',
-          required_resources: 'Development team, IoT sensors, mobile app'
-        },
-        missing_fields: ['budget_estimate', 'target_audience'],
-        status: 'pending_clarification'
-      };
+      console.error('Error connecting to Python backend:', error);
       
       toast({
-        title: "Demo Mode",
-        description: "Using mock data for demonstration. In production, this would connect to your backend.",
+        title: "Backend Connection Error",
+        description: "Could not connect to Python backend on port 3000. Please ensure your backend is running.",
+        variant: "destructive"
       });
-      
-      setTimeout(() => onComplete(mockData), 1000);
     } finally {
       setIsProcessing(false);
     }
