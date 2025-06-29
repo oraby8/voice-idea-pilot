@@ -47,11 +47,12 @@ const SubmissionStatus = ({ sessionId, onReset }: SubmissionStatusProps) => {
   };
 
   // Map backend status to display status
-  const getDisplayStatus = (backendStatus: string) => {
+  const getDisplayStatus = (backendStatus: string): 'completed' | 'processing' | 'connection_error' | 'pending' | 'failed' => {
     switch (backendStatus) {
       case 'complete': return 'completed';
       case 'needs_clarification': return 'processing';
       case 'connection_error': return 'connection_error';
+      case 'failed': return 'failed';
       default: return 'pending';
     }
   };
