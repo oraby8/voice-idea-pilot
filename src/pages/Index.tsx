@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import VoiceRecorder from '@/components/VoiceRecorder';
 import VoiceUpload from '@/components/VoiceUpload';
 import IdeaForm from '@/components/IdeaForm';
@@ -92,20 +91,10 @@ const Index = () => {
         {/* Main Content */}
         <div className="max-w-4xl mx-auto">
           {currentStep === 'record' && (
-            <Tabs defaultValue="record" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6">
-                <TabsTrigger value="record">Record Voice</TabsTrigger>
-                <TabsTrigger value="upload">Upload Audio</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="record" className="mt-0">
-                <VoiceRecorder onComplete={handleRecordingComplete} />
-              </TabsContent>
-              
-              <TabsContent value="upload" className="mt-0">
-                <VoiceUpload onComplete={handleRecordingComplete} />
-              </TabsContent>
-            </Tabs>
+            <div className="grid gap-8 md:grid-cols-2">
+              <VoiceRecorder onComplete={handleRecordingComplete} />
+              <VoiceUpload onComplete={handleRecordingComplete} />
+            </div>
           )}
           
           {currentStep === 'form' && sessionId && (
