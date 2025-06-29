@@ -157,16 +157,15 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
   const mapBackendFieldsToFormFields = (backendData: any) => {
     return {
       title: backendData.idea_title || '',
-      category: backendData.category || '',
       description: backendData.solution_details || '',
       expected_impact: backendData.benefits_and_impact || '',
-      implementation_timeline: backendData.feasibility_and_implementation || '',
-      required_resources: backendData.required_resources || '',
-      // Additional mappings based on your backend structure
       impact_measures: backendData.impact_measures || '',
       scalability: backendData.scalability || '',
       target_audience: backendData.target_audience || '',
-      relevant_entities: backendData.relevant_entities || ''
+      relevant_entities: backendData.relevant_entities || '',
+      implementation_timeline: backendData.feasibility_and_implementation || '',
+      category: backendData.category || '',
+      required_resources: backendData.required_resources || ''
     };
   };
 
