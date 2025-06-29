@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +13,7 @@ interface IdeaFormProps {
 }
 
 const IdeaForm = ({ sessionId, initialData, onComplete }: IdeaFormProps) => {
-  const [formData, setFormData] = useState(initialData?.extracted_fields || {});
+  const [formData, setFormData] = useState(initialData?.extracted_fields || initialData?.form_data || {});
   const [missingFields, setMissingFields] = useState(initialData?.missing_fields || []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [clarificationNeeded, setClarificationNeeded] = useState(false);
@@ -22,10 +21,10 @@ const IdeaForm = ({ sessionId, initialData, onComplete }: IdeaFormProps) => {
   const [clarificationResponse, setClarificationResponse] = useState('');
 
   useEffect(() => {
-    if (missingFields.length > 0 || currentMessage) {
-      setClarificationNeeded(true);
-    }
-  }, [missingFields, currentMessage]);
+    // Only show clarification if there are missing fields AND a message, and status is not complete
+    const hasIncompleteInfo = (missingFields.length > 0 || currentMessage) && initialData?.status !== 'complete';
+    setClarificationNeeded(hasIncompleteInfo);
+  }, [missingFields, currentMessage, initialData?.status]);
 
   const handleClarificationSubmit = async () => {
     if (!clarificationResponse.trim()) {
@@ -131,32 +130,32 @@ const IdeaForm = ({ sessionId, initialData, onComplete }: IdeaFormProps) => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="title">Idea Title</Label>
+            <Label htmlFor="idea_title">Idea Title</Label>
             <Input
-              id="title"
-              value={formData.title || ''}
-              onChange={(e) => handleFieldChange('title', e.target.value)}
+              id="idea_title"
+              value={formData.idea_title || ''}
+              onChange={(e) => handleFieldChange('idea_title', e.target.value)}
               placeholder="Enter your idea title"
             />
           </div>
           
           <div>
-            <Label htmlFor="description">Solution Details</Label>
+            <Label htmlFor="solution_details">Solution Details</Label>
             <Textarea
-              id="description"
-              value={formData.description || ''}
-              onChange={(e) => handleFieldChange('description', e.target.value)}
+              id="solution_details"
+              value={formData.solution_details || ''}
+              onChange={(e) => handleFieldChange('solution_details', e.target.value)}
               placeholder="Detailed description of your solution"
               className="min-h-24"
             />
           </div>
           
           <div>
-            <Label htmlFor="expected_impact">Benefits and Impact</Label>
+            <Label htmlFor="benefits_and_impact">Benefits and Impact</Label>
             <Textarea
-              id="expected_impact"
-              value={formData.expected_impact || ''}
-              onChange={(e) => handleFieldChange('expected_impact', e.target.value)}
+              id="benefits_and_impact"
+              value={formData.benefits_and_impact || ''}
+              onChange={(e) => handleFieldChange('benefits_and_impact', e.target.value)}
               placeholder="What benefits and impact do you expect?"
               className="min-h-20"
             />
@@ -207,11 +206,11 @@ const IdeaForm = ({ sessionId, initialData, onComplete }: IdeaFormProps) => {
           </div>
           
           <div>
-            <Label htmlFor="implementation_timeline">Feasibility and Implementation</Label>
+            <Label htmlFor="feasibility_and_implementation">Feasibility and Implementation</Label>
             <Textarea
-              id="implementation_timeline"
-              value={formData.implementation_timeline || ''}
-              onChange={(e) => handleFieldChange('implementation_timeline', e.target.value)}
+              id="feasibility_and_implementation"
+              value={formData.feasibility_and_implementation || ''}
+              onChange={(e) => handleFieldChange('feasibility_and_implementation', e.target.value)}
               placeholder="Timeline, budget, and feasibility details"
               className="min-h-20"
             />
