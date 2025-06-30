@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Download } from 'lucide-react';
 
 interface SubmissionStatusProps {
   sessionId: string;
@@ -44,6 +44,30 @@ const SubmissionStatus = ({ sessionId, onReset }: SubmissionStatusProps) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const exportAsCSV = () => {
+    if (!status?.form_data) return;
+
+    const headers = Object.keys(status.form_data).filter(key => status.form_data[key]);
+    const values = headers.map(key => status.form_data[key]);
+
+    // Create CSV content
+    const csvContent = [
+      headers.map(header => `"${header.replace('_', ' ').toUpperCase()}"`).join(','),
+      values.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',')
+    ].join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `idea_submission_${sessionId}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Map backend status to display status
@@ -154,8 +178,19 @@ const SubmissionStatus = ({ sessionId, onReset }: SubmissionStatusProps) => {
           {/* Form Data Display */}
           {status?.form_data && (
             <Card className="bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg">📋 Extracted Information</CardTitle>
+                {displayStatus === 'completed' && (
+                  <Button
+                    onClick={exportAsCSV}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <Download size={16} />
+                    Export CSV
+                  </Button>
+                )}
               </CardHeader>
               <CardContent className="space-y-3">
                 {Object.entries(status.form_data).map(([key, value]) => (
