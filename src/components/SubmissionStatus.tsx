@@ -4,6 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Download } from 'lucide-react';
 
+
+// Config - can be moved to a separate config file
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+
+
 interface SubmissionStatusProps {
   sessionId: string;
   onReset: () => void;
@@ -23,7 +28,7 @@ const SubmissionStatus = ({ sessionId, onReset }: SubmissionStatusProps) => {
     try {
       console.log('Fetching status from Python backend for session:', sessionId);
       
-      const response = await fetch(`http://localhost:3000/submission_status/${sessionId}`);
+      const response = await fetch(`${BACKEND_URL}/submission_status/${sessionId}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

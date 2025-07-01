@@ -4,6 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+
+
 interface VoiceRecorderProps {
   onComplete: (data: any) => void;
 }
@@ -220,7 +223,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
       
       console.log('Submitting to Python backend on port 3000:', inputMethod === 'text' ? 'text' : 'audio');
       
-      const response = await fetch('http://localhost:3000/start_submission', {
+      const response = await fetch(`${BACKEND_URL}/start_submission`, {
         method: 'POST',
         body: formData
       });
@@ -309,7 +312,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
       
       console.log('Submitting additional info to backend:', useMissingFieldsText ? 'text' : 'audio');
       
-      const response = await fetch('http://localhost:3000/start_submission', {
+      const response = await fetch(`${BACKEND_URL}/start_submission`, {
         method: 'POST',
         body: formData
       });

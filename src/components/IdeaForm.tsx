@@ -6,6 +6,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+
+
 interface IdeaFormProps {
   sessionId: string;
   initialData: any;
@@ -44,7 +47,7 @@ const IdeaForm = ({ sessionId, initialData, onComplete }: IdeaFormProps) => {
         response: clarificationResponse
       });
 
-      const response = await fetch('http://localhost:3000/provide_clarification', {
+      const response = await fetch(`${BACKEND_URL}/provide_clarification`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
