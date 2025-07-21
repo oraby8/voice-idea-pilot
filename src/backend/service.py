@@ -217,11 +217,11 @@ class IterativeIdeaSubmissionAssistant:
         validation = self.validator.validate_fields(current_fields)
         
         # Interactive clarification loop
-        max_iterations = 3  # Prevent infinite loops
+        #max_iterations = 3  # Prevent infinite loops
 
             
         # Get user clarification
-        prompt = self._generate_user_prompt(validation)
+        #prompt = self._generate_user_prompt(validation)
 
         return {
             "status": "complete" if not validation["missing_fields"] else "incomplete",
@@ -264,8 +264,6 @@ async def transcript(file_path,filename):
     files=[
         ('file',(filename,open(file_path,'rb'),'application/octet-stream'))
         ]
-    print(files)
     response = requests.request("POST", url, headers=headers, data=payload, files=files)
-    print(response)
 
     return response.status_code ,response.json()

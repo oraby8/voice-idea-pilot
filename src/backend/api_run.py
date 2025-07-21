@@ -66,7 +66,6 @@ async def start_submission(
         
         # Process either audio or text input
         if audio:
-            print(1)
             # Save audio temporarily
             audio_path = f"temp_audio/{session_id}.mp3"
             os.makedirs(os.path.dirname(audio_path), exist_ok=True)
@@ -74,9 +73,7 @@ async def start_submission(
                 buffer.write(await audio.read())
             
             # Process through assistant
-            print(audio_path,audio_path.split('/')[-1])
             status_code , output_json = await transcript(audio_path,audio_path.split('/')[-1])
-            print(status_code)
             if status_code == 200:
                 departments_text = output_json["transcript"]
             result = assistant.run_interactive_loop(departments_text)
@@ -108,19 +105,37 @@ async def start_submission(
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/provide_clarification", response_model=APIResponse)
-async def provide_clarification(request: ClarificationRequest):
+async def provide_clarification(audio: Optional[UploadFile] = File(None),
+    text: Optional[str] = Form(None),
+    session_id: Optional[str] = Form(None)):
     """Endpoint for follow-up clarifications"""
     try:
-        if request.session_id not in sessions:
+        if session_id not in sessions:
             raise HTTPException(status_code=404, detail="Session not found")
         
         # Get current session state
-        session = sessions[request.session_id]
+        session = sessions[session_id]
+
+        if audio:
+            # Save audio temporarily
+            audio_path = f"temp_audio/{session_id}.mp3"
+            os.makedirs(os.path.dirname(audio_path), exist_ok=True)
+            with open(audio_path, "wb") as buffer:
+                buffer.write(await audio.read())
+            
+            # Process through assistant
+            status_code , output_json = await transcript(audio_path,audio_path.split('/')[-1])
+            if status_code == 200:
+                departments_text = output_json["transcript"]
+                print(departments_text)
+            text = departments_text
+            os.remove(audio_path)
+
         
         # Process clarification
         updated_fields = assistant._update_fields(
             session["current_fields"],
-            request.response
+            str(text)
         )
         
         # Validate
@@ -129,10 +144,9 @@ async def provide_clarification(request: ClarificationRequest):
         # Update session
         session["current_fields"] = updated_fields
         session["history"].append({
-            "response": request.response,
+            "response": str(text),
             "validation": validation
         })
-        
         # Prepare response
         status = "complete" if not validation["missing_fields"] else "needs_clarification"
         
@@ -140,9 +154,10 @@ async def provide_clarification(request: ClarificationRequest):
             status=status,
             form_data=FormFieldResponse(**updated_fields),
             missing_fields=[f["field"] for f in validation.get("missing_fields", [])],
-            session_id=request.session_id,
-            message=assistant._generate_user_prompt(validation) if status == "needs_clarification" else None
+            session_id=session_id,
+            message=None#assistant._generate_user_prompt(validation) if status == "needs_clarification" else None
         )
+        
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

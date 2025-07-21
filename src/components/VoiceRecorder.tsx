@@ -212,6 +212,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
 
     setIsProcessing(true);
     
+    
     try {
       const formData = new FormData();
       
@@ -312,7 +313,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
       
       console.log('Submitting additional info to backend:', useMissingFieldsText ? 'text' : 'audio');
       
-      const response = await fetch(`${BACKEND_URL}/start_submission`, {
+      const response = await fetch(`${BACKEND_URL}/provide_clarification`, {
         method: 'POST',
         body: formData
       });
@@ -322,7 +323,31 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
       }
       
       const data = await response.json();
-      console.log('Additional info response:', data);
+
+      // After getting the response, ensure that the UI's missing fields are always in sync with the backend's missing_fields array.
+      // If the backend returns status 'needs_clarification', update the UI accordingly.
+      if (data.status === 'needs_clarification') {
+        // Update missing fields data and UI state
+        setMissingFieldsData(data);
+        setShowMissingFields(true);
+        setAdditionalInput('');
+        setMissingFieldsAudioBlob(null);
+
+        // Show a toast with the backend's message or a default one
+        toast({
+          title: "More Information Needed",
+          description: `Still missing information for ${data.missing_fields.length} fields.`,
+        });
+
+        // Ensure the missing fields section is shown
+        
+
+        // Optionally, you can call onComplete or another callback if you want to propagate the update
+        // onComplete(data);
+      }
+      
+
+
       
       if (data.status === 'complete') {
         // Pass the form_data directly
