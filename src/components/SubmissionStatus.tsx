@@ -6,7 +6,7 @@ import { Download } from 'lucide-react';
 
 
 // Config - can be moved to a separate config file
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://fastmt.tarjama.com/voice-backend';
 
 
 interface SubmissionStatusProps {
@@ -59,7 +59,7 @@ const SubmissionStatus = ({ sessionId, onReset }: SubmissionStatusProps) => {
 
     // Create CSV content
     const csvContent = [
-      headers.map(header => `"${header.replace('_', ' ').toUpperCase()}"`).join(','),
+      headers.map(header => `"${header.replace(/_/g, ' ').toUpperCase()}"`).join(','),
       values.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',')
     ].join('\n');
 
@@ -146,10 +146,17 @@ const SubmissionStatus = ({ sessionId, onReset }: SubmissionStatusProps) => {
             }
           </CardDescription>
         </CardHeader>
+        
         <CardContent className="space-y-6">
           {/* Status Badge */}
           <div className="flex justify-center">
-            <Badge className={`${getStatusColor(status?.status)} text-white px-4 py-2 text-base`}>
+            <Badge
+              className={`
+                ${getStatusColor(status?.status)}
+                text-white px-4 py-2 text-base
+                ${getDisplayStatus(status?.status) === 'completed' ? 'hover:bg-green-500' : ''}
+              `}
+            >
               {status?.status === 'connection_error' ? 'CONNECTION ERROR' : displayStatus.toUpperCase()}
             </Badge>
           </div>
@@ -174,7 +181,7 @@ const SubmissionStatus = ({ sessionId, onReset }: SubmissionStatusProps) => {
                 </div>
                 <div>
                   <span className="font-medium text-gray-600">Status:</span>
-                  <div className="capitalize">{status?.status?.replace('_', ' ')}</div>
+                  <div className="capitalize">{status?.status?.replace(/_/g, ' ')}</div>
                 </div>
               </div>
             </div>
@@ -185,24 +192,23 @@ const SubmissionStatus = ({ sessionId, onReset }: SubmissionStatusProps) => {
             <Card className="bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg">📋 Extracted Information</CardTitle>
-                {displayStatus === 'completed' && (
-                  <Button
-                    onClick={exportAsCSV}
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                  >
-                    <Download size={16} />
-                    Export CSV
-                  </Button>
-                )}
+                <Button
+                  onClick={exportAsCSV}
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  disabled={displayStatus !== 'completed'}
+                >
+                  <Download size={16} />
+                  Export CSV
+                </Button>
               </CardHeader>
               <CardContent className="space-y-3">
                 {Object.entries(status.form_data).map(([key, value]) => (
                   value ? (
                     <div key={key}>
                       <span className="font-medium text-gray-600 capitalize">
-                        {key.replace('_', ' ')}:
+                        {key.replace(/_/g, ' ')}:
                       </span>
                       <div className="text-gray-800">{String(value)}</div>
                     </div>
@@ -221,13 +227,6 @@ const SubmissionStatus = ({ sessionId, onReset }: SubmissionStatusProps) => {
               className="px-6"
             >
               Submit Another Idea
-            </Button>
-            <Button
-              onClick={() => window.location.reload()}
-              className="bg-purple-600 hover:bg-purple-700 px-6"
-              size="lg"
-            >
-              Refresh Status
             </Button>
           </div>
         </CardContent>

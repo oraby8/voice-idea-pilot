@@ -74,7 +74,7 @@ const Index = () => {
 
         {/* Step Labels */}
         <div className="flex justify-center mb-12">
-          <div className="flex items-center justify-between w-80 text-sm text-gray-600">
+          <div className="flex items-center gap-x-6 w-auto text-sm text-gray-600 whitespace-nowrap">
             <span className={currentStep === 'record' ? 'font-semibold text-purple-600' : ''}>
               Record Idea
             </span>

@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://fastmt.tarjama.com/voice-backend';
 
 
 interface VoiceRecorderProps {
@@ -336,7 +336,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
         // Show a toast with the backend's message or a default one
         toast({
           title: "More Information Needed",
-          description: `Still missing information for ${data.missing_fields.length} fields.`,
+          description: data.message || `Still missing information for ${data.missing_fields.length} fields.`,
         });
 
         // Ensure the missing fields section is shown
@@ -437,7 +437,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
                   <div className={`mx-auto w-32 h-32 rounded-full flex items-center justify-center transition-all duration-300 ${
                     isRecording 
                       ? 'bg-red-500 animate-pulse shadow-lg shadow-red-200' 
-                      : 'bg-gradient-to-br from-purple-500 to-blue-600 hover:shadow-lg hover:shadow-purple-200 cursor-pointer'
+                      : 'bg-gradient-to-br from-purple-500 to-blue-600 hover:shadow-lg hover:shadow-purple-200'
                   }`}>
                     <div className="text-white text-4xl">
                       {isRecording ? '⏹️' : '🎤'}
@@ -485,7 +485,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
               {/* Upload Audio Interface */}
               {inputMethod === 'upload' && (
                 <div className="text-center space-y-6">
-                  <div className="mx-auto w-32 h-32 rounded-full flex items-center justify-center bg-gradient-to-br from-purple-500 to-blue-600 hover:shadow-lg hover:shadow-purple-200 cursor-pointer transition-all duration-300"
+                  <div className="mx-auto w-32 h-32 rounded-full flex items-center justify-center bg-gradient-to-br from-purple-500 to-blue-600 hover:shadow-lg hover:shadow-purple-200 transition-all duration-300"
                        onClick={triggerFileUpload}>
                     <div className="text-white text-4xl">
                       📁
@@ -576,7 +576,7 @@ const VoiceRecorder = ({ onComplete }: VoiceRecorderProps) => {
                   <ul className="list-disc list-inside text-amber-700 space-y-1">
                     {missingFieldsData.missing_fields.map((field: string) => (
                       <li key={field} className="capitalize">
-                        {field.replace('_', ' ')}
+                        {field.replace(/_/g, ' ')}
                       </li>
                     ))}
                   </ul>
